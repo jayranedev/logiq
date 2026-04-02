@@ -57,8 +57,16 @@ export default function MapView() {
 
   if (loadError) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-slate-900 text-red-400 text-sm">
-        Failed to load Google Maps. Check your API key.
+      <div className="flex-1 flex flex-col items-center justify-center bg-slate-900 gap-3">
+        <div className="text-red-400 text-sm font-medium">⚠ Google Maps failed to load</div>
+        <div className="text-slate-500 text-xs text-center max-w-xs leading-relaxed">
+          Set a valid <code className="text-slate-300 bg-slate-800 px-1 rounded">GOOGLE_MAPS_API_KEY</code> in{" "}
+          <code className="text-slate-300 bg-slate-800 px-1 rounded">.env</code> and restart Docker.
+          <br />Ensure billing is enabled and Maps JavaScript API is active.
+        </div>
+        <div className="mt-2 text-emerald-400 text-xs">
+          {Object.keys(driverPositions).length} drivers tracked live — data is flowing ✓
+        </div>
       </div>
     );
   }
