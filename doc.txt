@@ -1,0 +1,466 @@
+================================================================================
+ LOGIQ.AI — COMPLETE PROJECT DOCUMENTATION
+ Generated: April 3, 2026
+================================================================================
+
+Table of Contents:
+  1. Project Overview
+  2. Architecture
+  3. Phase 1 Implementation (Foundation)
+  4. Phase 2 Implementation (Intelligence Layer)
+  5. File Structure
+  6. API Endpoints Reference
+  7. Environment Setup
+  8. Running the Project
+  9. Development Timeline & Chat Summary
+  10. Known Issues & Next Steps
+
+================================================================================
+1. PROJECT OVERVIEW
+================================================================================
+
+LOGIQ.AI is an AI-powered last-mile delivery logistics platform built for
+Mumbai's complex delivery network. It provides:
+
+  - Real-time fleet tracking (6+ drivers on a live map)
+  - AI-driven delay risk predictions (XGBoost + SHAP explainability)
+  - OR-Tools route optimization (CVRP with capacity + priority constraints)
+  - Order management with filtering and priority sorting
+  - Live KPI dashboard with WebSocket-powered stats
+
+Tech Stack:
+  Backend:  FastAPI, PostgreSQL (async), Redis (pub/sub), Alembic
+  Frontend: React 18, Mapbox GL JS, Zustand, React Query, Recharts, Tailwind
+  AI/ML:    XGBoost, OR-Tools, SHAP, NumPy
+  Infra:    Docker Compose (4 containers)
+
+Repository: https://github.com/jayranedev/logiq
+
+================================================================================
+2. ARCHITECTURE
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                         FRONTEND (React)                            │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ │
+│  │FleetPanel│ │OrderQueue│ │AI Predict│ │RoutePanel│ │Stats/Feed│ │
+│  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘ │
+│       │            │            │             │             │       │
+│  ┌────▼────────────▼────────────▼─────────────▼─────────────▼────┐ │
+│  │                    Zustand Store (appStore.js)                 │ │
+│  └───────┬──────────────────┬────────────────────────────────────┘ │
+│          │ REST (polling)   │ WebSocket (live GPS)                  │
+└──────────┼──────────────────┼──────────────────────────────────────┘
+           │                  │
+┌──────────▼──────────────────▼──────────────────────────────────────┐
+│                         BACKEND (FastAPI)                           │
+│  ┌──────────────────────────────────────────┐  ┌────────────────┐  │
+│  │           REST API Layer                  │  │  WebSocket     │  │
+│  │  /api/drivers  /api/orders               │  │  /ws/tracking  │  │
+│  │  /api/routes   /api/predictions          │  │                │  │
+│  └──────┬───────────────────────────────────┘  └───────┬────────┘  │
+│         │                                              │           │
+│  ┌──────▼──────────────────────────────────────────────▼────────┐  │
+│  │                    Service Layer                              │  │
+│  │  driver_service  order_service  batch_service                │  │
+│  │  route_optimizer  prediction_service  realtime_service       │  │
+│  └──────┬──────────────────────────┬───────────────────────────┘  │
+│         │                          │                               │
+│  ┌──────▼──────┐  ┌───────────────▼────────────────┐              │
+│  │ PostgreSQL  │  │ Redis (pub/sub for real-time)   │              │
+│  │ (drivers,   │  │ Channel: driver_locations       │              │
+│  │  orders,    │  │ Channel: events                 │              │
+│  │  routes)    │  │                                 │              │
+│  └─────────────┘  └─────────────────────────────────┘              │
+└────────────────────────────────────────────────────────────────────┘
+
+Data Flow:
+  1. GPS Simulator publishes driver lat/lng to Redis every 2s
+  2. Redis subscriber in backend receives messages
+  3. Backend broadcasts to all connected WebSocket clients
+  4. Frontend updates Zustand store → Mapbox re-renders markers
+  5. Backend also persists positions to PostgreSQL (fire-and-forget)
+
+================================================================================
+3. PHASE 1 IMPLEMENTATION (Foundation — Hours 0-8)
+================================================================================
+
+Phase 1 built the core infrastructure: database, CRUD APIs, real-time
+WebSocket tracking, and the base frontend with a live map.
+
+Backend (Person A):
+  ✅ Docker Compose: PostgreSQL 15 + Redis 7 + FastAPI backend + Node frontend
+  ✅ Alembic migrations for drivers, orders tables
+  ✅ CRUD endpoints: GET/POST/PATCH for drivers and orders
+  ✅ WebSocket server with Redis pub/sub for location broadcast
+  ✅ GPS Simulator: 6 drivers looping real Mumbai road waypoints
+  ✅ Seed script: 6 drivers (Raju, Amit, Suresh, Vikram, Deepak, Rahul)
+     + 20 orders across Mumbai zones
+
+Frontend (Person B):
+  ✅ Vite + React 18 + Tailwind + dark theme
+  ✅ Layout: Sidebar + Header + Map + Side Panel
+  ✅ Map integration: originally Leaflet → Google Maps → now Mapbox GL JS
+  ✅ Real-time driver markers with SVG icons (green=available, amber=busy)
+  ✅ WebSocket client hook with auto-reconnect
+  ✅ Fleet panel: driver cards with status badges, LIVE indicators, GPS coords
+  ✅ Click driver → map flies to position + shows info popup
+
+Key Files:
+  backend/app/main.py               — FastAPI app + lifespan (ML load + Redis)
+  backend/app/api/drivers.py        — Driver CRUD endpoints
+  backend/app/api/orders.py         — Order CRUD endpoints
+  backend/app/api/websocket.py      — WebSocket endpoint + Redis subscriber
+  backend/app/services/realtime_service.py — Connection manager + channels
+  backend/scripts/gps_simulator.py  — Moves 6 drivers along Mumbai roads
+  backend/scripts/seed_data.py      — Seeds 6 drivers + 20 orders
+  frontend/src/App.jsx              — Root component with panel routing
+  frontend/src/components/Map/      — MapView, DriverMarker, RoutePolyline
+  frontend/src/components/Fleet/    — FleetPanel with driver cards
+  frontend/src/hooks/useWebSocket.js — WebSocket with StrictMode handling
+  frontend/src/stores/appStore.js   — Zustand state management
+
+================================================================================
+4. PHASE 2 IMPLEMENTATION (Intelligence Layer — Hours 8-20)
+================================================================================
+
+Phase 2 added the AI/optimization intelligence and dashboard panels.
+
+Backend — Optimization + AI:
+  ✅ OR-Tools CVRP Route Optimizer (route_optimizer.py)
+     - Capacitated Vehicle Routing Problem solver
+     - Haversine distance matrix
+     - Priority-weighted penalties (high=100K, medium=50K, low=20K)
+     - 5-second solver time limit
+     - Returns driver route assignments with waypoints
+
+  ✅ Order Batching (batch_service.py)
+     - Auto-assigns pending orders to available drivers
+     - Groups by proximity and capacity
+
+  ✅ Synthetic Data Generator (ml/generate_data.py)
+     - 15,000 delivery history records
+     - Features: distance, weight, priority, hour, rush hour, traffic, weather
+     - Realistic Mumbai-specific patterns
+
+  ✅ XGBoost Training (ml/train_model.py)
+     - Classifier: delay yes/no (binary classification)
+     - Regressor: delay minutes (regression)
+     - Saves model_classifier.pkl + model_regressor.pkl
+
+  ✅ Prediction Service (prediction_service.py)
+     - Loads models at app startup
+     - SHAP explainability (TreeExplainer for factor breakdown)
+     - Synthetic fallback if models not yet trained
+     - Returns: risk_level, delay_probability, estimated_delay_minutes, factors
+
+  ✅ API Endpoints:
+     - POST /api/routes/optimize → runs CVRP solver
+     - POST /api/routes/batch → auto-assigns orders to drivers
+     - GET  /api/predictions/{order_id} → single prediction
+     - POST /api/predictions/batch → batch predictions
+
+Frontend — Dashboard Panels:
+  ✅ OrderQueue (components/Orders/OrderQueue.jsx)
+     - Filter tabs: All, Pending, Assigned, In Transit, Delivered
+     - Sort toggle: Newest first / Priority first
+     - Order cards with customer name, location, priority badge
+
+  ✅ PredictionPanel (components/AI/PredictionPanel.jsx)
+     - Auto-fetches predictions for all orders
+     - Risk summary: "6 high · 8 medium · 6 low"
+     - RiskCard: delay percentage bar, risk badge
+     - FactorChart: Recharts horizontal bar for SHAP factors
+     - Refresh button
+
+  ✅ RoutePanel (components/Route/RoutePanel.jsx)
+     - "Optimize Routes" button → calls CVRP solver
+     - "Auto-Batch" button → assigns pending orders
+     - Route result cards with distance + estimated time
+
+  ✅ StatsBar (components/Dashboard/StatsBar.jsx)
+     - Live KPI cards: Active Drivers, In Transit, Pending, Delivered
+     - Updates via React Query polling (5s interval)
+
+  ✅ LiveFeed (components/Dashboard/LiveFeed.jsx)
+     - Streaming event feed from WebSocket
+     - Color-coded event types
+
+================================================================================
+5. FILE STRUCTURE
+================================================================================
+
+c:\logic\
+├── .env                          # MAPBOX_TOKEN (git-ignored)
+├── .env.example                  # Template for env vars
+├── .gitignore
+├── docker-compose.yml            # 4 services: postgres, redis, backend, frontend
+├── LOGIQ-AI-Work-Split.md        # Development roadmap
+│
+├── backend/
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   ├── alembic.ini
+│   ├── alembic/                  # Database migrations
+│   ├── init.sql                  # PostGIS / extensions
+│   ├── scripts/
+│   │   ├── gps_simulator.py      # Moves 6 drivers around Mumbai
+│   │   └── seed_data.py          # Seeds drivers + orders
+│   └── app/
+│       ├── main.py               # FastAPI app entry point
+│       ├── config.py             # Settings (DB URL, Redis, Secret)
+│       ├── database.py           # Async SQLAlchemy session
+│       ├── models/               # SQLAlchemy ORM models
+│       │   ├── driver.py         # Driver: name, status, vehicle, capacity, lat/lng
+│       │   └── order.py          # Order: customer, pickup/delivery coords, priority
+│       ├── schemas/              # Pydantic request/response schemas
+│       │   ├── driver.py
+│       │   ├── order.py
+│       │   ├── route.py
+│       │   └── prediction.py
+│       ├── api/                  # Route handlers
+│       │   ├── drivers.py        # GET/POST/PATCH /api/drivers
+│       │   ├── orders.py         # GET/POST/PATCH /api/orders
+│       │   ├── routes.py         # POST /api/routes/optimize, /batch
+│       │   ├── predictions.py    # GET /api/predictions/{id}, POST /batch
+│       │   └── websocket.py      # ws://localhost:8000/ws/tracking
+│       ├── services/             # Business logic layer
+│       │   ├── driver_service.py
+│       │   ├── order_service.py
+│       │   ├── batch_service.py
+│       │   ├── route_optimizer.py      # OR-Tools CVRP
+│       │   ├── prediction_service.py   # XGBoost + SHAP
+│       │   └── realtime_service.py     # WebSocket manager
+│       └── ml/                   # Machine learning pipeline
+│           ├── generate_data.py  # 15K synthetic records
+│           └── train_model.py    # XGBoost classifier + regressor
+│
+└── frontend/
+    ├── .env                      # VITE_MAPBOX_TOKEN, API URLs
+    ├── package.json
+    ├── tailwind.config.js
+    ├── vite.config.js
+    └── src/
+        ├── main.jsx              # React entry point
+        ├── App.jsx               # Root component + panel routing
+        ├── index.css             # Tailwind + Mapbox popup overrides
+        ├── stores/
+        │   └── appStore.js       # Zustand global state
+        ├── hooks/
+        │   ├── useWebSocket.js   # WS connection with auto-reconnect
+        │   ├── useDrivers.js     # React Query: fetch drivers
+        │   └── useOrders.js      # React Query: fetch orders
+        ├── services/
+        │   └── api.js            # Axios API client
+        ├── utils/
+        │   └── constants.js      # Colors, map center, API URLs
+        └── components/
+            ├── Layout/
+            │   ├── Header.jsx    # KPI pills + connection indicator
+            │   └── Sidebar.jsx   # Icon navigation (fleet/orders/ai/routes/stats)
+            ├── Map/
+            │   ├── MapView.jsx   # Mapbox GL JS dark map
+            │   ├── DriverMarker.jsx  # SVG markers + click popup
+            │   └── RoutePolyline.jsx # GeoJSON line layer
+            ├── Fleet/
+            │   ├── FleetPanel.jsx    # Driver list with status counts
+            │   └── DriverCard.jsx    # Individual driver card
+            ├── Orders/
+            │   ├── OrderQueue.jsx    # Filterable order list
+            │   └── OrderCard.jsx     # Order card with priority
+            ├── AI/
+            │   ├── PredictionPanel.jsx # Risk analysis dashboard
+            │   ├── RiskCard.jsx      # Individual risk card
+            │   └── FactorChart.jsx   # SHAP factor bar chart
+            ├── Route/
+            │   ├── RoutePanel.jsx    # Optimize + Batch buttons
+            │   └── RouteCard.jsx     # Route result display
+            └── Dashboard/
+                ├── StatsBar.jsx      # Live KPI cards
+                └── LiveFeed.jsx      # Event stream
+
+================================================================================
+6. API ENDPOINTS REFERENCE
+================================================================================
+
+Health:
+  GET  /health                     → { "status": "ok" }
+
+Drivers:
+  GET  /api/drivers                → List all drivers
+  POST /api/drivers                → Create a driver
+  PATCH /api/drivers/{id}          → Update driver (status, location)
+
+Orders:
+  GET  /api/orders                 → List all orders (filterable by status)
+  POST /api/orders                 → Create an order
+  PATCH /api/orders/{id}           → Update order status
+
+Routes (Phase 2):
+  POST /api/routes/optimize        → Run OR-Tools CVRP optimizer
+    Body: { driver_ids: [...], order_ids: [...] }
+    Returns: { routes: [...], unassigned: [...], total_distance_km: N }
+
+  POST /api/routes/batch           → Auto-batch pending orders to drivers
+    Returns: { routes: [...], unassigned: [...] }
+
+Predictions (Phase 2):
+  GET  /api/predictions/{order_id} → Single delay risk prediction
+    Returns: { order_id, risk_level, delay_probability,
+               estimated_delay_minutes, factors: [...] }
+
+  POST /api/predictions/batch      → Batch predictions for all pending orders
+    Returns: list of predictions
+
+WebSocket:
+  ws://localhost:8000/ws/tracking   → Real-time driver location stream
+    Receives: { type: "location", driver_id, lat, lng, name, status }
+    Sends:    { type: "ping" } every 30s
+
+================================================================================
+7. ENVIRONMENT SETUP
+================================================================================
+
+Prerequisites:
+  - Docker Desktop
+  - Node.js 20+ (for local frontend dev)
+  - Git
+
+Environment Variables:
+
+  Root (.env):
+    MAPBOX_TOKEN=pk.eyJ1...        # Mapbox access token (free at mapbox.com)
+
+  Frontend (frontend/.env):
+    VITE_API_URL=http://localhost:8000
+    VITE_WS_URL=ws://localhost:8000/ws/tracking
+    VITE_MAPBOX_TOKEN=pk.eyJ1...   # Same Mapbox token
+
+  Backend (via docker-compose.yml):
+    DATABASE_URL=postgresql+asyncpg://logiq:logiq123@postgres:5432/logiqdb
+    REDIS_URL=redis://redis:6379
+    SECRET_KEY=logiq-hackathon-secret-key
+
+================================================================================
+8. RUNNING THE PROJECT
+================================================================================
+
+First Time Setup:
+  1. Clone:    git clone https://github.com/jayranedev/logiq.git
+  2. Add token: Create .env with MAPBOX_TOKEN=your_token
+               Create frontend/.env with VITE_MAPBOX_TOKEN=your_token
+  3. Build:    docker-compose up --build -d
+  4. Migrate:  docker-compose exec backend alembic upgrade head
+  5. Seed:     docker-compose exec backend python scripts/seed_data.py
+  6. Simulate: docker-compose exec -d backend python scripts/gps_simulator.py
+  7. Open:     http://localhost:3000
+
+Daily Development:
+  docker-compose up -d                         # Start all services
+  docker-compose exec -d backend python scripts/gps_simulator.py  # Start GPS sim
+  docker-compose logs -f backend               # Watch backend logs
+  docker-compose down                          # Stop all services
+
+Train ML Models (optional — synthetic fallback works without):
+  docker-compose exec backend python -m app.ml.generate_data
+  docker-compose exec backend python -m app.ml.train_model
+
+Ports:
+  Frontend:   http://localhost:3000
+  Backend:    http://localhost:8000
+  PostgreSQL: localhost:5432
+  Redis:      localhost:6379
+
+================================================================================
+9. DEVELOPMENT TIMELINE & CHAT SUMMARY
+================================================================================
+
+Session 1 (Initial Setup):
+  - Created git repo at github.com/jayranedev/logiq
+  - Reviewed LOGIQ-AI-Work-Split.md roadmap
+  - Phase 1 was mostly complete (CRUD, WebSocket, GPS sim, fleet panel)
+  - Started transition to Phase 2
+
+Session 2 (Phase 2 Build — April 2, 2026):
+
+  Map Provider Journey:
+  1. Started with Leaflet (original Phase 1 plan)
+  2. Leaflet CSS failed to load inside Docker container
+  3. Switched to Google Maps → required billing (ExpiredKeyMapError)
+  4. User created Google Cloud API key (33 APIs, unrestricted)
+  5. Still got ExpiredKeyMapError (billing not enabled on Google project)
+  6. Final solution: Switched to Mapbox GL JS (free, no billing needed)
+  7. Mapbox working perfectly with dark-v11 theme ✅
+
+  Backend Work Completed:
+  - route_optimizer.py: OR-Tools CVRP solver
+  - batch_service.py: Auto-batch orders to drivers
+  - prediction_service.py: XGBoost + SHAP with synthetic fallback
+  - generate_data.py: 15K synthetic delivery records
+  - train_model.py: XGBoost classifier + regressor
+  - predictions.py: Single + batch API endpoints
+  - routes.py: Optimize + batch API endpoints
+  - prediction.py schema: Pydantic models
+
+  Frontend Work Completed:
+  - MapView.jsx: Mapbox GL JS with dark theme + driver markers
+  - DriverMarker.jsx: SVG markers with click-to-select + popup
+  - RoutePolyline.jsx: GeoJSON line layer for routes
+  - OrderQueue.jsx: Filter tabs + priority sort
+  - PredictionPanel.jsx: Auto-fetch risk predictions
+  - RiskCard.jsx: Delay percentage bar + risk badge
+  - FactorChart.jsx: SHAP factor horizontal bars (Recharts)
+  - RoutePanel.jsx: Optimize + Auto-Batch buttons
+  - StatsBar.jsx: Live KPI cards
+  - LiveFeed.jsx: Streaming event feed
+  - appStore.js: Extended with routes, predictions, filters
+  - api.js: Added routes + predictions endpoints
+  - useWebSocket.js: Fixed for React StrictMode
+
+  Bugs Fixed:
+  - WebSocket "closed before established" → React StrictMode double-mount fix
+  - Leaflet CSS not loading in Docker → Switched providers
+  - Google Maps ExpiredKeyMapError → Switched to Mapbox (free)
+  - docker-compose.yml deprecated "version" key removed
+  - Map container not sizing correctly → absolute positioning fix
+  - Frontend .env overriding docker-compose env vars → Synced both
+
+  Git Commits:
+  1. Phase 2: Leaflet revert, OR-Tools optimizer, XGBoost ML pipeline, full dashboard panels
+  2. Switch from Leaflet to Google Maps for reliable map rendering
+  3. Fix WebSocket StrictMode, improve map error fallback, add .env.example
+  4. Switch from Google Maps to Mapbox GL JS (free, no billing required)
+  5. Final: Mapbox working, live drivers tracked, env files updated
+
+================================================================================
+10. KNOWN ISSUES & NEXT STEPS
+================================================================================
+
+Working:
+  ✅ Map: Mapbox dark theme, 6 live driver markers moving in Mumbai
+  ✅ Fleet Panel: Driver cards with LIVE badges + real-time GPS
+  ✅ Orders Panel: 60 orders with filter tabs + priority badges
+  ✅ AI Panel: Delay risk predictions with HIGH/MED/LOW classification
+  ✅ Route Panel: Optimize + Auto-Batch buttons
+  ✅ Stats Bar: Active Drivers, In Transit, Pending, Delivered KPIs
+  ✅ WebSocket: Real-time position updates flowing
+  ✅ Backend APIs: All endpoints functional
+
+Known Issues:
+  ⚠ WebSocket console warning in dev (React StrictMode double-mount, harmless)
+  ⚠ ML models not trained yet (using synthetic fallback predictions)
+     Fix: run generate_data + train_model in backend container
+  ⚠ GPS simulator must be started manually after container restart
+
+Phase 3 Next Steps (Mobile + Polish):
+  - Expo mobile app: 3 screens (orders, map, status)
+  - Background GPS tracking from mobile
+  - Order status flow: picked_up → in_transit → delivered
+  - Deploy to AWS EC2 with nginx reverse proxy
+  - Animations: route drawing, marker transitions, panel slide-ins
+  - "Trigger moment" demo button: inject traffic spike
+  - Error boundaries, loading states, reconnect toasts
+
+================================================================================
+ END OF DOCUMENT
+================================================================================
