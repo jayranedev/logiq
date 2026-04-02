@@ -18,7 +18,9 @@ export const ordersApi = {
 };
 
 export const routesApi = {
+  list: () => api.get("/api/routes").then((r) => r.data),
   optimize: (data) => api.post("/api/routes/optimize", data).then((r) => r.data),
+  batch: () => api.post("/api/routes/batch").then((r) => r.data),
 };
 
 export const predictionsApi = {

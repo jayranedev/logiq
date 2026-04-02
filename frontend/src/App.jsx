@@ -10,12 +10,15 @@ import FleetPanel from "./components/Fleet/FleetPanel";
 import OrderQueue from "./components/Orders/OrderQueue";
 import PredictionPanel from "./components/AI/PredictionPanel";
 import RoutePanel from "./components/Route/RoutePanel";
+import StatsPanel from "./components/Dashboard/StatsBar";
+import LiveFeed from "./components/Dashboard/LiveFeed";
 
 const PANELS = {
   fleet: FleetPanel,
   orders: OrderQueue,
   ai: PredictionPanel,
   routes: RoutePanel,
+  stats: StatsPanel,
 };
 
 export default function App() {

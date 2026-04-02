@@ -10,6 +10,9 @@ from app.api.websocket import redis_subscriber, router as ws_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Load ML models at startup
+    from app.services.prediction_service import load_models
+    load_models()
     # Start Redis subscriber in the background
     task = asyncio.create_task(redis_subscriber())
     yield
