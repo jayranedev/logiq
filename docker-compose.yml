@@ -51,7 +51,7 @@ services:
     environment:
       VITE_API_URL: http://localhost:8000
       VITE_WS_URL: ws://localhost:8000/ws/tracking
-      VITE_GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY}
+      VITE_MAPBOX_TOKEN: ${MAPBOX_TOKEN}
     volumes:
       - ./frontend:/app
       - /app/node_modules
