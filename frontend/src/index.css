@@ -2,9 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Leaflet CSS */
-@import "leaflet/dist/leaflet.css";
-
 :root {
   color-scheme: dark;
 }
@@ -15,26 +12,36 @@ body {
   overflow: hidden;
 }
 
-/* Hide Leaflet default attribution branding slightly */
-.leaflet-control-attribution {
-  @apply text-xs opacity-50;
-}
-
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 4px;
 }
+
 ::-webkit-scrollbar-track {
   @apply bg-slate-800;
 }
+
 ::-webkit-scrollbar-thumb {
   @apply bg-slate-600 rounded;
 }
 
-/* Leaflet popup dark theme */
-.leaflet-popup-content-wrapper {
-  @apply bg-slate-800 text-slate-100 border border-slate-600 rounded-lg shadow-xl;
+/* Google Maps InfoWindow dark overrides */
+.gm-style .gm-style-iw-c {
+  background-color: #1e293b !important;
+  border: 1px solid #334155 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5) !important;
+  padding: 0 !important;
 }
-.leaflet-popup-tip {
-  @apply bg-slate-800;
+
+.gm-style .gm-style-iw-d {
+  overflow: hidden !important;
+}
+
+.gm-style .gm-style-iw-tc::after {
+  background: #1e293b !important;
+}
+
+.gm-ui-hover-effect>span {
+  background-color: #94a3b8 !important;
 }
