@@ -92,19 +92,19 @@ def generate_dataset(n_records: int = 15000, output_path: str = None):
 
         # TARGET: delay logic (realistic rules)
         delay_score = (
-            distance * 0.08
-            + traffic_factor * 0.25
-            + weather_score * 0.15
-            + (0.2 if is_rush_hour else 0)
-            + weight * 0.01
-            - min(driver_experience_days / 1000, 0.3)
-            + zone_density * 0.10
-            + (0.05 if is_weekend else 0)
-            + random.gauss(0, 0.1)
+            distance * 0.025
+            + traffic_factor * 0.15
+            + weather_score * 0.10
+            + (0.12 if is_rush_hour else 0)
+            + weight * 0.003
+            - min(driver_experience_days / 600, 0.40)
+            + zone_density * 0.06
+            + (0.02 if is_weekend else 0)
+            + random.gauss(0, 0.15)
         )
 
-        is_delayed = 1 if delay_score > 0.5 else 0
-        delay_minutes = round(max(0, delay_score * 30 + random.gauss(0, 5)), 1) if is_delayed else 0
+        is_delayed = 1 if delay_score > 0.35 else 0
+        delay_minutes = round(max(0, delay_score * 50 + random.gauss(0, 10)), 1) if is_delayed else 0
 
         records.append({
             "distance_km": round(distance, 2),

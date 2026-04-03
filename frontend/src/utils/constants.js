@@ -36,3 +36,19 @@ export const DRIVER_MARKER_COLORS = {
   busy: "#f59e0b",
   offline: "#64748b",
 };
+
+// Unique color per driver (by ID). Vibrant, high-contrast on dark map.
+export const DRIVER_PALETTE = [
+  "#3b82f6", // Blue  — Driver 1
+  "#f97316", // Orange — Driver 2
+  "#a855f7", // Purple — Driver 3
+  "#14b8a6", // Teal   — Driver 4
+  "#ef4444", // Red    — Driver 5
+  "#eab308", // Yellow — Driver 6
+  "#ec4899", // Pink   — Driver 7 (extra)
+  "#06b6d4", // Cyan   — Driver 8 (extra)
+];
+
+export const getDriverColor = (driverId) =>
+  DRIVER_PALETTE[(driverId - 1) % DRIVER_PALETTE.length];
+

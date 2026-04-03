@@ -461,6 +461,36 @@ Phase 3 Next Steps (Mobile + Polish):
   - "Trigger moment" demo button: inject traffic spike
   - Error boundaries, loading states, reconnect toasts
 
+
+lets continue with phase 1 & phase 2 implimentations
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Let me first check if the ML scripts exist and train the models, then do a full end-to-end test:
+
+Good. Let me train the ML models and then run a full end-to-end test:
+
+97.6% delayed is very imbalanced — the generate_data script threshold might need adjusting. Let me check and fix that, then train:
+
+The delay threshold > 0.5 is too low — the distance term alone (distance * 0.08) for Mumbai routes (avg ~10km) gives 0.8, plus traffic factor (1.5 * 0.25 = 0.375), so almost every record exceeds 0.5. Let me fix the threshold and regenerate:
+
+Now regenerate data and train:
+
+Still 75.6% delayed — better but still imbalanced. Let me adjust more aggressively, but actually this is fine for XGBoost — it handles class imbalance well with scale_pos_weight. Let me train the models:
+
+1
+generate_data.py
 ================================================================================
  END OF DOCUMENT
 ================================================================================

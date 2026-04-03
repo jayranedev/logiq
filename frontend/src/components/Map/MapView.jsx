@@ -1,9 +1,10 @@
 import { useEffect, useRef } from "react";
 import Map, { NavigationControl } from "react-map-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { MUMBAI_CENTER, MAP_ZOOM } from "../../utils/constants";
+import { MUMBAI_CENTER, MAP_ZOOM, getDriverColor } from "../../utils/constants";
 import useAppStore from "../../stores/appStore";
 import DriverMarker from "./DriverMarker";
+import DriverDetailModal from "./DriverDetailModal";
 import RoutePolyline from "./RoutePolyline";
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || "";
@@ -51,7 +52,7 @@ export default function MapView() {
       >
         <NavigationControl position="bottom-right" />
 
-        {/* Driver markers */}
+        {/* Driver markers — each with unique color */}
         {drivers.map((driver) => {
           const pos = driverPositions[driver.id];
           if (!pos) return null;
@@ -65,14 +66,14 @@ export default function MapView() {
           );
         })}
 
-        {/* Optimized route polylines */}
+        {/* Optimized route polylines — color-matched to driver */}
         {(routes || []).map((route, i) =>
           route.waypoints && route.waypoints.length > 1 ? (
             <RoutePolyline
               key={route.id || i}
               routeId={route.id || i}
               positions={route.waypoints.map((w) => [w.lng || w[1], w.lat || w[0]])}
-              color={["#3b82f6", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#ef4444"][i % 6]}
+              color={route.driver_id ? getDriverColor(route.driver_id) : ["#3b82f6", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#ef4444"][i % 6]}
             />
           ) : null
         )}
@@ -85,6 +86,9 @@ export default function MapView() {
         </span>{" "}
         drivers tracked live
       </div>
+
+      {/* Driver detail modal — appears on click */}
+      <DriverDetailModal />
     </div>
   );
 }
