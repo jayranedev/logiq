@@ -28,4 +28,9 @@ export const predictionsApi = {
   batch: (data) => api.post("/api/predictions/batch", data).then((r) => r.data),
 };
 
+export const warehouseApi = {
+  register: (data) => api.post("/api/warehouse/drivers/register", data).then(r => r.data),
+  login: (phone, pin) => api.post("/api/warehouse/drivers/login", { phone, pin }).then(r => r.data),
+};
+
 export default api;

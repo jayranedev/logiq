@@ -11,7 +11,9 @@
       "Bash(curl -s \"http://localhost:8000/api/routes?driver_id=1\")",
       "Bash(python3 -c \"import json,sys; r=json.load\\(sys.stdin\\); print\\(f'{len\\(r\\)} routes for driver 1'\\); [print\\(f'  Route {x[\\\\\"id\\\\\"]}: {len\\(x[\\\\\"waypoints\\\\\"] or []\\)} wps, status={x[\\\\\"status\\\\\"]}'\\) for x in r[:3]]\")",
       "Bash(curl -s \"http://localhost:8000/api/warehouse/list\")",
-      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(f'  {w[\\\\\"name\\\\\"]} \\({w[\\\\\"city\\\\\"]}\\)'\\) for w in d]\")"
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(f'  {w[\\\\\"name\\\\\"]} \\({w[\\\\\"city\\\\\"]}\\)'\\) for w in d]\")",
+      "Bash(docker info:*)",
+      "Bash(docker context:*)"
     ]
   }
 }
