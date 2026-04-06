@@ -1,7 +1,8 @@
 import enum
 from datetime import datetime
+from typing import Optional
 
-from sqlalchemy import DateTime, Enum, Float, ForeignKey, Integer, String, func
+from sqlalchemy import Boolean, DateTime, Enum, Float, ForeignKey, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -52,6 +53,14 @@ class Order(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+    # ── Parcel / warehouse fields ──────────────────────────────────────────────
+    qr_code: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, unique=True, index=True)
+    barcode: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    warehouse_zone: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    is_sorted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    bag_scanned: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    bag_scanned_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     driver: Mapped["Driver"] = relationship("Driver", back_populates="orders")
     route: Mapped["Route"] = relationship("Route", back_populates="orders")

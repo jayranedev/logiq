@@ -1,5 +1,6 @@
 import enum
 from datetime import datetime
+from typing import Optional
 
 from sqlalchemy import DateTime, Enum, Float, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -29,6 +30,11 @@ class Driver(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+    # ── Multi-warehouse fields ─────────────────────────────────────────────────
+    home_warehouse: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    home_lat: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    home_lng: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    pin_code: Mapped[Optional[str]] = mapped_column(String(6), nullable=True)  # simple 6-digit login PIN
 
     orders: Mapped[list["Order"]] = relationship("Order", back_populates="driver")
     routes: Mapped[list["Route"]] = relationship("Route", back_populates="driver")

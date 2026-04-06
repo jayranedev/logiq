@@ -14,9 +14,10 @@ router = APIRouter(prefix="/api/orders", tags=["orders"])
 @router.get("", response_model=List[OrderOut])
 async def list_orders(
     status: Optional[OrderStatus] = None,
+    driver_id: Optional[int] = None,
     db: AsyncSession = Depends(get_db),
 ):
-    return await order_service.get_orders(db, status=status)
+    return await order_service.get_orders(db, status=status, driver_id=driver_id)
 
 
 @router.get("/{order_id}", response_model=OrderOut)

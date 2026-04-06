@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx expo:*)",
+      "Bash(cmd /c \"netstat -ano | findstr :8082\")",
+      "Bash(docker compose:*)",
+      "Bash(curl -s http://localhost:8000/api/analytics/deliveries/daily)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('OK -', len\\(d\\), 'days'\\)\")",
+      "Bash(curl -sv -H \"Origin: http://localhost:3000\" http://localhost:8000/api/analytics/deliveries/daily)",
+      "Bash(docker exec:*)",
+      "Bash(curl -s \"http://localhost:8000/api/routes?driver_id=1\")",
+      "Bash(python3 -c \"import json,sys; r=json.load\\(sys.stdin\\); print\\(f'{len\\(r\\)} routes for driver 1'\\); [print\\(f'  Route {x[\\\\\"id\\\\\"]}: {len\\(x[\\\\\"waypoints\\\\\"] or []\\)} wps, status={x[\\\\\"status\\\\\"]}'\\) for x in r[:3]]\")",
+      "Bash(curl -s \"http://localhost:8000/api/warehouse/list\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(f'  {w[\\\\\"name\\\\\"]} \\({w[\\\\\"city\\\\\"]}\\)'\\) for w in d]\")"
+    ]
+  }
+}

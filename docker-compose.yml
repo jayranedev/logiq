@@ -34,6 +34,7 @@ services:
       DATABASE_URL: postgresql+asyncpg://logiq:logiq123@postgres:5432/logiqdb
       REDIS_URL: redis://redis:6379
       SECRET_KEY: logiq-hackathon-secret-key
+      MAPBOX_TOKEN: ${MAPBOX_TOKEN}
     depends_on:
       postgres:
         condition: service_healthy

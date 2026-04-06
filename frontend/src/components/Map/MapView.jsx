@@ -66,25 +66,44 @@ export default function MapView() {
           );
         })}
 
-        {/* Optimized route polylines — color-matched to driver */}
-        {(routes || []).map((route, i) =>
-          route.waypoints && route.waypoints.length > 1 ? (
+        {/* Optimized route polylines — driver pos → ordered stops */}
+        {(routes || []).map((route, i) => {
+          if (!route.waypoints?.length) return null;
+          const color = route.driver_id
+            ? getDriverColor(route.driver_id)
+            : ["#3b82f6", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#ef4444"][i % 6];
+
+          // Prepend driver's live position so line starts from their location
+          const driverPos = route.driver_id ? driverPositions[route.driver_id] : null;
+          const startPt = driverPos ? [[driverPos.lng, driverPos.lat]] : [];
+          const wps = route.waypoints.map(w => [w.lng ?? w[1], w.lat ?? w[0]]);
+          const positions = [...startPt, ...wps];
+
+          return positions.length >= 2 ? (
             <RoutePolyline
               key={route.id || i}
               routeId={route.id || i}
-              positions={route.waypoints.map((w) => [w.lng || w[1], w.lat || w[0]])}
-              color={route.driver_id ? getDriverColor(route.driver_id) : ["#3b82f6", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#ef4444"][i % 6]}
+              positions={positions}
+              color={color}
             />
-          ) : null
-        )}
+          ) : null;
+        })}
       </Map>
 
-      {/* Driver count overlay */}
-      <div className="absolute top-3 left-3 z-10 bg-slate-900/80 backdrop-blur-sm border border-slate-700/60 rounded-lg px-3 py-2 text-xs text-slate-300 pointer-events-none">
-        <span className="text-emerald-400 font-bold">
-          {Object.keys(driverPositions).length}
-        </span>{" "}
-        drivers tracked live
+      {/* Live overlay */}
+      <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5 pointer-events-none">
+        <div className="flex items-center gap-2 bg-slate-950/85 backdrop-blur-sm border border-slate-800 rounded-lg px-3 py-1.5 text-xs">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="text-emerald-400 font-bold">{Object.keys(driverPositions).length}</span>
+          <span className="text-slate-400">drivers live</span>
+        </div>
+        {(routes || []).filter(r => r.waypoints?.length > 0).length > 0 && (
+          <div className="flex items-center gap-2 bg-slate-950/85 backdrop-blur-sm border border-slate-800 rounded-lg px-3 py-1.5 text-xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+            <span className="text-blue-400 font-bold">{(routes || []).filter(r => r.waypoints?.length > 0).length}</span>
+            <span className="text-slate-400">active routes</span>
+          </div>
+        )}
       </div>
 
       {/* Driver detail modal — appears on click */}

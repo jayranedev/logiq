@@ -73,8 +73,12 @@ def _haversine_km(lat1, lng1, lat2, lng2):
     return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 
-def _extract_features(order: dict) -> np.ndarray:
-    """Extract ML features from order data."""
+def _extract_features(order: dict, traffic_factor: float = None) -> np.ndarray:
+    """
+    Extract ML features from order data.
+    If traffic_factor is provided (from Mapbox live data), use it directly.
+    Otherwise fall back to time-based estimate.
+    """
     from datetime import datetime
 
     now = datetime.now()
@@ -89,15 +93,23 @@ def _extract_features(order: dict) -> np.ndarray:
     hour = now.hour
     is_rush = 1 if hour in range(8, 11) or hour in range(17, 21) else 0
 
+    # Use real Mapbox traffic factor if provided, else time-based fallback
+    if traffic_factor is not None:
+        tf = traffic_factor
+    elif is_rush:
+        tf = random.uniform(1.2, 2.0)
+    else:
+        tf = random.uniform(0.3, 1.0)
+
     features = [
         distance,                                          # distance_km
         order.get("weight", 1.0),                         # weight_kg
         PRIORITY_MAP.get(order.get("priority", "medium"), 1),  # priority_encoded
         hour,                                              # hour_of_day
         now.weekday(),                                     # day_of_week
-        random.uniform(0.5, 2.0) if is_rush else random.uniform(0.3, 1.0),  # traffic_factor
-        random.uniform(0.0, 1.0),                         # weather_score
-        order.get("driver_experience_days", 180),         # driver_experience_days
+        tf,                                                # traffic_factor (live or estimated)
+        order.get("weather_score", random.uniform(0.0, 0.4)),  # weather_score
+        order.get("driver_experience_days", 180),          # driver_experience_days
         is_rush,                                           # is_rush_hour
         random.uniform(0.2, 1.0),                         # zone_density
     ]
@@ -105,7 +117,23 @@ def _extract_features(order: dict) -> np.ndarray:
     return np.array([features])
 
 
-def predict_single(order: dict) -> dict:
+async def predict_single_live(order: dict) -> dict:
+    """
+    Predict delay risk using live Mapbox traffic data for the feature vector.
+    Falls back to predict_single() if Mapbox unavailable.
+    """
+    try:
+        from app.services.mapbox_service import get_traffic_factor
+        tf = await get_traffic_factor(
+            order.get("delivery_lat", 19.076),
+            order.get("delivery_lng", 72.8777),
+        )
+        return predict_single(order, traffic_factor=tf)
+    except Exception:
+        return predict_single(order)
+
+
+def predict_single(order: dict, traffic_factor: float = None) -> dict:
     """
     Predict delay risk for a single order.
 
@@ -116,7 +144,7 @@ def predict_single(order: dict) -> dict:
         # Fallback: generate synthetic prediction if models not trained yet
         return _synthetic_prediction(order)
 
-    features = _extract_features(order)
+    features = _extract_features(order, traffic_factor=traffic_factor)
 
     # Classifier: probability of delay
     delay_proba = float(_classifier.predict_proba(features)[0][1])

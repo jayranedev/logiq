@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "LOGIQ Driver",
+    "slug": "logiq-driver",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "sdkVersion": "54.0.0",
+    "newArchEnabled": false,
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.logiq.driver",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "LOGIQ needs your location to track deliveries in real time.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "LOGIQ needs background location to send GPS updates while delivering.",
+        "NSCameraUsageDescription": "LOGIQ needs the camera to scan parcel QR codes at the warehouse.",
+        "UIBackgroundModes": ["location", "fetch"]
+      }
+    },
+    "android": {
+      "package": "com.logiq.driver",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "CAMERA"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "LOGIQ needs your location to track deliveries in real time."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "LOGIQ needs the camera to scan parcel QR codes at the warehouse."
+        }
+      ]
+    ]
+  }
+}

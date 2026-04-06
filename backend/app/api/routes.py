@@ -30,8 +30,14 @@ router = APIRouter(prefix="/api/routes", tags=["routes"])
 
 
 @router.get("", response_model=List[RouteOut])
-async def list_routes(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Route).order_by(Route.created_at.desc()))
+async def list_routes(
+    driver_id: Optional[int] = None,
+    db: AsyncSession = Depends(get_db),
+):
+    q = select(Route).order_by(Route.created_at.desc())
+    if driver_id is not None:
+        q = q.where(Route.driver_id == driver_id)
+    result = await db.execute(q)
     return result.scalars().all()
 
 
