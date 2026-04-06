@@ -42,7 +42,25 @@ services:
         condition: service_healthy
     volumes:
       - ./backend:/app
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/drivers')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  simulator:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+asyncpg://logiq:logiq123@postgres:5432/logiqdb
+      REDIS_URL: redis://redis:6379
+      BACKEND_URL: http://backend:8000
+    depends_on:
+      backend:
+         condition: service_healthy
+    volumes:
+      - ./backend:/app
+    command: python scripts/gps_simulator.py
 
   frontend:
     image: node:20-alpine
