@@ -88,10 +88,10 @@ async def seed():
 
         await session.flush()
 
-        # Seed 20 orders distributed across zones
+        # Seed 150 orders distributed across zones
         # Each order picks up from warehouse and delivers to a zone location
         zone_names = list(ZONES.keys())
-        for i in range(20):
+        for i in range(150):
             # Distribute orders roughly evenly across zones
             zone = zone_names[i % len(zone_names)]
             delivery = random.choice(ZONES[zone])
